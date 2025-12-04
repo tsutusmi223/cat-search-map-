@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>画像付き地図アプリ＋掲示板</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      overflow-y: scroll;
+    }
+    #map {
+      height: 60vh;
+      width: 100%;
+      display: none;
+    }
+    #fileInput {
+      opacity: 0;
+      position: fixed;
+      top: -100px;
+    }
+    .popup-img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 5px 0;
+      border-radius: 4px;
+    }
+    .delete-btn {
+      background: red;
+      color: white;
+      border: none;
+      padding: 5px 8px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .comment-box {
+      margin-top: 5px;
+    }
+    .comment-list {
+      font-size: 0.9em;
+      margin-top: 5px;
+      background: #f0f0f0;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    #bbs {
+      padding: 15px;
+      background: #f9f9f9;
+      display: none;
+    }
+    #bbs textarea {
+      width: 100%;
+      padding: 8px;
+      font-size: 1em;
+    }
+    #bbs input[type="file"] {
+      margin-top: 5px;
+    }
+    .bbs-message {
+      background: #e0f7fa;
+      padding: 8px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      position: relative;
+    }
+    .bbs-meta {
+      font-size: 0.8em;
+      color: #555;
+    }
+    .bbs-image {
+      max-width: 100%;
+      height: auto;
+      margin-top: 5px;
+      border-radius: 4px;
+    }
+    .bbs-delete {
+      background: #d32f2f;
+      color: white;
+      border: none;
+      padding: 3px 6px;
+      font-size: 0.8em;
+      border-radius: 3px;
+      cursor: pointer;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+    }
+
+    /* モーダル */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 90%;
+    }
+    .modal-content button {
+      margin-top: 15px;
+      padding: 8px 16px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+
+<!-- モーダル -->
+<div id="introModal" class="modal">
+  <div class="modal-content">
+    <h2>📍 写真＋コメント＋日時付きマップ</h2>
+    <p>地図をタップ → 画像を選択 → コメント・日時を入力してピンを追加できます。</p>
+    <button onclick="closeIntro()">OK</button>
+  </div>
+</div>
+
+<!-- 地図と掲示板 -->
+<div id="map"></div>
+<input type="file" id="fileInput" accept="image/*" />
+
+<div id="bbs">
+  <h3>🗨️ 掲示板</h3>
+  <textarea id="bbsInput" rows="3" placeholder="メッセージを入力..."></textarea>
+  <input type="file" id="bbsImageInput" accept="image/*" />
+  <button onclick="submitBBS()" style="margin-top: 5px;">📩 投稿</button>
+  <div id="bbsList" style="margin-top: 15px;"></div>
+</div>
+
+<script>
+function closeIntro() {
+  document.getElementById("introModal").style.display = "none";
+  setTimeout(() => {
+    document.getElementById("map").style.display = "block";
+    document.getElementById("bbs").style.display = "block";
+    map.invalidateSize();
+  }, 100);
+}
+
+const STORAGE_KEY = 'savedMarkers';
+const COMMENT_KEY = 'markerComments';
+const BBS_KEY = 'bbsMessages';
+
+const map = L.map('map').setView([38.725213, 139.827071], 15);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let tempLatLng = null;
+const markerList = [];
+
+function createPopupContent(data, index) {
+  const { comment, image, lat, lng, datetime, id } = data;
+  const comments = getCommentsForMarker(id);
+  const commentHtml = comments.map(c => `<div>・${c.text} <small>(${c.datetime})</small></div>`).join('');
+  return `
+    <b>コメント:</b><br>${comment}<br>
+    <b>日時:</b> ${datetime || '未設定'}<br>
+    <img src="${image}" class="popup-img"><br>
+    <small>緯度: ${lat}<br>経度: ${lng}</small><br>
+    <div class="comment-list">${commentHtml || 'コメントなし'}</div>
+    <div class="comment-box">
+      <input type="text" id="comment-input-${id}" placeholder="コメントを追加" />
+      <button onclick="submitComment(${id})">💬 送信</button>
+    </div>
+    <button class="delete-btn" onclick="deleteMarkerAt(${index})">🗑️ 削除</button>
+  `;
+}
+
+function getCommentsForMarker(id) {
+  const all = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
+  return all[id] || [];
+}
+
+function addCommentToStorage(id, text) {
+  const all = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
+  const datetime = getCurrentDateTime();
+  if (!all[id]) all[id] = [];
+  all[id].push({ text, datetime });
+  localStorage.setItem(COMMENT_KEY, JSON.stringify(all));
+}
+
+function submitComment(id) {
+  const input = document.getElementById(`comment-input-${id}`);
+  const text = input.value.trim();
+  if (!text) return;
+  addCommentToStorage(id, text);
+  input.value = "";
+  updateAllPopupContents();
+}
+
+function loadMarkersFromStorage() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return;
+  try {
+    const markers = JSON.parse(saved);
+    markers.forEach((data, index) => {
+      if (data.image && data.image.startsWith("data:image")) {
+        addMarker(data, index);
+      }
+    });
+  } catch (e) {
+    console.error("保存データの読み込みに失敗しました:", e);
+  }
+}
+
+function saveMarkersToStorage(markers) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(markers));
+}
+
+function addMarkerToStorage(data) {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  const markers = saved ? JSON.parse(saved) : [];
+  markers.push(data);
+  saveMarkersToStorage(markers);
+}
+
+function addMarker(data, index) {
+  const { lat, lng } = data;
+  const marker = L.marker([lat, lng]).addTo(map);
+  marker.bindPopup(createPopupContent(data, index));
+  markerList[index] = marker;
+}
+
+function updateAllPopupContents() {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  markerList.forEach((marker, i) => {
+    marker.bindPopup(createPopupContent(saved[i], i));
+  });
+}
+
+function deleteMarker(marker, index) {
+  map.removeLayer(marker);
+  markerList.splice(index, 1);
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const deleted = saved.splice(index, 1)[0];
+  saveMarkersToStorage(saved);
+  const allComments = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
+  delete allComments[deleted.id];
+  localStorage.setItem(COMMENT_KEY, JSON.stringify(allComments));
+  updateAllPopupContents();
+}
+
+document.getElementById('fileInput').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file || !tempLatLng) return;
+  if (!file.type.startsWith("image/")) {
+    alert("画像ファイルを選んでください。");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function (event) {
+    const imageData = event.target.result;
+    if (!imageData) {
+      alert("画像の読み込みに失敗しました。");
+      return;
+    }
+    const comment = prompt("この場所のコメントを入力してください：");
+    if (!comment || comment.trim() === "") return;
+    let datetime = prompt("日付と時間を入力してください（例: 2025-07-03 14:30）", getCurrentDateTime());
+    if (!datetime || datetime.trim() === "") datetime = "未設定";
+    const lat = parseFloat(tempLatLng.lat.toFixed(6));
+    const lng = parseFloat(tempLatLng.lng.toFixed(6));
+    const id = Date.now();
+    const newData = { lat, lng, comment, image: imageData, datetime, id };
+    const index = markerList.length;
+    addMarkerToStorage(newData);
+    addMarker(newData, index);
+    document.getElementById('fileInput').value = '';
+    tempLatLng = null;
+  };
+  reader.readAsDataURL(file);
+});
+
+map.on('click', function (e) {
+  tempLatLng = e.latlng;
+  const fileBtn = document.createElement("button");
+  fileBtn.textContent = "📷 画像を選ぶ";
+  fileBtn.style.position = "fixed";
+  fileBtn.style.top = "10px";
+  fileBtn.style.left = "10px";
+  fileBtn.style.zIndex = "9999";
+  fileBtn.style.padding = "8px 12px";
+  fileBtn.style.fontSize = "16px";
+  fileBtn.onclick = () => {
+    document.getElementById('fileInput').click();
+    fileBtn.remove();
+  };
+  document.body.appendChild(fileBtn);
+});
+
+window.deleteMarkerAt = function (index) {
+  if (confirm("このピンを削除しますか？")) {
+    deleteMarker(markerList[index], index);
+  }
+};
+
+function getCurrentDateTime() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
+// 掲示板機能
+function submitBBS() {
+  const input = document.getElementById("bbsInput");
+  const fileInput = document.getElementById("bbsImageInput");
+  const text = input.value.trim();
+  const file = fileInput.files[0];
+  if (!text && !file) return;
+  const datetime = getCurrentDateTime();
+  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function (event) {
+      const imageData = event.target.result;
+      saved.push({ text, datetime, image: imageData });
+      localStorage.setItem(BBS_KEY, JSON.stringify(saved));
+      input.value = "";
+      fileInput.value = "";
+      renderBBS();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    saved.push({ text, datetime, image: null });
+    localStorage.setItem(BBS_KEY, JSON.stringify(saved));
+    input.value = "";
+    fileInput.value = "";
+    renderBBS();
+  }
+}
+
+function renderBBS() {
+  const list = document.getElementById("bbsList");
+  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
+  list.innerHTML = saved.map((msg, index) => `
+    <div class="bbs-message">
+      <button class="bbs-delete" onclick="deleteBBS(${index})">削除</button>
+      ${msg.text ? `<div>${msg.text}</div>` : ""}
+      ${msg.image ? `<img src="${msg.image}" class="bbs-image">` : ""}
+      <div class="bbs-meta">🕒 ${msg.datetime}</div>
+    </div>
+  `).join('');
+}
+
+function deleteBBS(index) {
+  if (!confirm("このコメントを削除しますか？")) return;
+  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
+  saved.splice(index, 1);
+  localStorage.setItem(BBS_KEY, JSON.stringify(saved));
+  renderBBS();
+}
+
+// 初期読み込み
+loadMarkersFromStorage();
+renderBBS();
+</script>
+
+</body>
+</html>
+
