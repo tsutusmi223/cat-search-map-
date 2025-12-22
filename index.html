@@ -154,7 +154,7 @@
   <button id="selectImageBtn" style="position: fixed; top: 10px; left: 10px; z-index: 9999; display: none;">
   📷 画像を選ぶ
 </button>
-<input type="file" id="fileInput" accept="image/*" />
+<input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;" />
 <div id="bbs">
   <h3>🗨️ 掲示板</h3>
   <textarea id="bbsInput" rows="3" placeholder="メッセージを入力..."></textarea>
@@ -429,6 +429,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
