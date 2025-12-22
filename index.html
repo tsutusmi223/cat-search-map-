@@ -301,7 +301,7 @@ document.getElementById('fileInput').addEventListener('change', function () {
     const id = Date.now();
     const newData = { lat, lng, comment, image: imageData, datetime, id };
     const index = markerList.length;
-
+    
     // ローカル保存
     addMarkerToStorage(newData);
     addMarker(newData, index);
@@ -407,6 +407,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
