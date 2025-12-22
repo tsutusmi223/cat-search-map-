@@ -240,6 +240,28 @@ function loadMarkersFromStorage() {
     console.error("保存データの読み込みに失敗しました:", e);
   }
 }
+  function loadMarkersFromFirestore() {
+  db.collection("posts").orderBy("timestamp", "desc").get().then((querySnapshot) => {
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const id = doc.id;
+      const markerData = {
+        lat: data.lat,
+        lng: data.lng,
+        comment: data.comment,
+        datetime: data.datetime,
+        image: data.image,
+        id: id
+      };
+      const index = markerList.length;
+      addMarker(markerData, index);
+    });
+    console.log("Firestoreから投稿を読み込みました！");
+  }).catch((error) => {
+    console.error("Firestore読み込みエラー:", error);
+  });
+}
+
 
 function saveMarkersToStorage(markers) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(markers));
@@ -407,6 +429,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
