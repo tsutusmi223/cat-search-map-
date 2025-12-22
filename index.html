@@ -382,20 +382,33 @@ function submitBBS() {
   if (!text && !file) return;
   const datetime = getCurrentDateTime();
   const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
+
   if (file) {
     const reader = new FileReader();
     reader.onload = function (event) {
-  const imageData = event.target.result;
-  if (!imageData) {
-    alert("画像の読み込みに失敗しました。");
-    return;
+      const imageData = event.target.result;
+      if (!imageData) {
+        alert("画像の読み込みに失敗しました。");
+        return;
+      }
+
+      // ✅ ← このブロックが必要！
+      saved.push({ text, datetime, image: imageData });
+      localStorage.setItem(BBS_KEY, JSON.stringify(saved));
+      input.value = "";
+      fileInput.value = "";
+      renderBBS();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    saved.push({ text, datetime, image: null });
+    localStorage.setItem(BBS_KEY, JSON.stringify(saved));
+    input.value = "";
+    fileInput.value = "";
+    renderBBS();
   }
+}
 
-  window.pendingImageData = imageData;
-  window.pendingLatLng = tempLatLng;
-
-  document.getElementById("customModal").style.display = "block";
-};
 
 
 function renderBBS() {
@@ -432,6 +445,7 @@ renderBBS();
 </div>
 </body>
 </html>
+
 
 
 
