@@ -385,22 +385,18 @@ function submitBBS() {
   if (file) {
     const reader = new FileReader();
     reader.onload = function (event) {
-      const imageData = event.target.result;
-      saved.push({ text, datetime, image: imageData });
-      localStorage.setItem(BBS_KEY, JSON.stringify(saved));
-      input.value = "";
-      fileInput.value = "";
-      renderBBS();
-    };
-    reader.readAsDataURL(file);
-  } else {
-    saved.push({ text, datetime, image: null });
-    localStorage.setItem(BBS_KEY, JSON.stringify(saved));
-    input.value = "";
-    fileInput.value = "";
-    renderBBS();
+  const imageData = event.target.result;
+  if (!imageData) {
+    alert("画像の読み込みに失敗しました。");
+    return;
   }
-}
+
+  window.pendingImageData = imageData;
+  window.pendingLatLng = tempLatLng;
+
+  document.getElementById("customModal").style.display = "block";
+};
+
 
 function renderBBS() {
   const list = document.getElementById("bbsList");
@@ -427,8 +423,16 @@ loadMarkersFromStorage();
 loadMarkersFromFirestore();
 renderBBS();
 </script>
+<div id="customModal" style="display:none; position:fixed; top:20%; left:10%; width:80%; background:white; padding:10px; border:1px solid #ccc; z-index:10000;">
+  <h3>猫の情報を入力</h3>
+  <input type="text" id="customComment" placeholder="コメントを入力" style="width:100%; margin-bottom:5px;" />
+  <input type="datetime-local" id="customDatetime" style="width:100%; margin-bottom:5px;" />
+  <button id="submitCustom">✅ 投稿</button>
+  <button onclick="document.getElementById('customModal').style.display='none'">キャンセル</button>
+</div>
 </body>
 </html>
+
 
 
 
