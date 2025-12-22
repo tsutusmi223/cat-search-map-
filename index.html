@@ -6,9 +6,31 @@
   <meta name="keywords" content="猫, 鶴岡, 地図, 猫マップ, 猫の目撃情報, cat map, tsuruoka" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>画像付き地図アプリ＋掲示板</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet（地図ライブラリ） -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Firebase SDK（互換モード） -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD6bNkzZfTjj7jfZkXHcznBQanVaOgsKbI",
+      authDomain: "cat-search-map-955f9.firebaseapp.com",
+      projectId: "cat-search-map-955f9",
+      storageBucket: "cat-search-map-955f9.firebasestorage.app",
+      messagingSenderId: "807316947292",
+      appId: "1:807316947292:web:90b6bb68e0f77866c38199",
+      measurementId: "G-BDKV31YP20"
+    };
+
+    // Firebase初期化
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
   <style>
     body {
       margin: 0;
@@ -93,7 +115,6 @@
       right: 5px;
     }
 
-    /* モーダル */
     .modal {
       position: fixed;
       top: 0; left: 0;
@@ -280,17 +301,36 @@ document.getElementById('fileInput').addEventListener('change', function () {
     const id = Date.now();
     const newData = { lat, lng, comment, image: imageData, datetime, id };
     const index = markerList.length;
+
+    // ローカル保存
     addMarkerToStorage(newData);
     addMarker(newData, index);
+
+    // Firestoreに保存！
+    db.collection("posts").add({
+      lat,
+      lng,
+      comment,
+      datetime,
+      image: imageData,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      console.log("Firestoreに保存完了！");
+    }).catch((error) => {
+      console.error("Firestore保存エラー:", error);
+    });
+
     document.getElementById('fileInput').value = '';
     tempLatLng = null;
   };
   reader.readAsDataURL(file);
 });
+
 const selectImageBtn = document.getElementById('selectImageBtn');
 selectImageBtn.onclick = () => {
   document.getElementById('fileInput').click();
 };
+
 map.on('click', function (e) {
   tempLatLng = e.latlng;
   selectImageBtn.style.display = 'block';
@@ -356,19 +396,18 @@ function renderBBS() {
 
 function deleteBBS(index) {
   if (!confirm("このコメントを削除しますか？")) return;
-  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
+    const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
   saved.splice(index, 1);
   localStorage.setItem(BBS_KEY, JSON.stringify(saved));
   renderBBS();
 }
-
 // 初期読み込み
 loadMarkersFromStorage();
 renderBBS();
 </script>
-
 </body>
 </html>
+
 
 
 
