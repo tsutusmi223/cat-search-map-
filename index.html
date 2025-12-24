@@ -162,12 +162,10 @@
   <div id="bbsList" style="margin-top: 15px;"></div>
 </div>
 
-<!-- カスタム入力モーダル -->
+<!-- カスタム入力モーダル（場所のみ） -->
 <div id="customModal" style="display:none; position:fixed; top:20%; left:10%; width:80%; background:white; padding:10px; border:1px solid #ccc; z-index:10000;">
-  <h3>猫の情報を入力</h3>
-  <input type="text" id="customPlace" placeholder="場所（例：〇〇公園）" style="width:100%; margin-bottom:5px;" />
-  <input type="text" id="customComment" placeholder="コメントを入力" style="width:100%; margin-bottom:5px;" />
-  <input type="datetime-local" id="customDatetime" style="width:100%; margin-bottom:5px;" />
+  <h3>猫の場所を入力</h3>
+  <input type="text" id="customPlace" placeholder="例：〇〇公園、△△通りなど" style="width:100%; margin-bottom:10px;" />
   <button id="submitCustom">✅ 投稿</button>
   <button onclick="document.getElementById('customModal').style.display='none'">キャンセル</button>
 </div>
@@ -309,8 +307,33 @@ function deleteMarker(marker, index) {
 }
 
 window.deleteMarkerAt = function (index) {
+  const marker = markerList[index];
+  if (!marker) return;
+
   if (confirm("このピンを削除しますか？")) {
-    deleteMarker(markerList[index], index);
+    // 地図から削除
+    map.removeLayer(marker);
+
+    // 保存データから削除
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const deleted = saved.splice(index, 1)[0];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+
+    // コメントも削除
+    const allComments = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
+    delete allComments[deleted.id];
+    localStorage.setItem(COMMENT_KEY, JSON.stringify(allComments));
+
+    // マーカーリスト再構成
+    markerList.length = 0;
+    map.eachLayer(layer => {
+      if (layer instanceof L.Marker) {
+        map.removeLayer(layer);
+      }
+    });
+
+    loadMarkersFromStorage();
+    updateAllPopupContents();
   }
 };
 
@@ -348,15 +371,19 @@ document.getElementById('fileInput').addEventListener('change', function () {
 });
 document.getElementById("submitCustom").onclick = function () {
   const place = document.getElementById("customPlace").value.trim();
-  const comment = document.getElementById("customComment").value.trim();
-  const datetime = document.getElementById("customDatetime").value || "未設定";
+  if (!place) {
+    alert("場所を入力してください。");
+    return;
+  }
+
+  const datetime = getCurrentDateTime(); // ← 自動で現在時刻
   const lat = parseFloat(window.pendingLatLng.lat.toFixed(6));
   const lng = parseFloat(window.pendingLatLng.lng.toFixed(6));
   const id = Date.now();
   const newData = {
     lat,
     lng,
-    comment: place ? `${place}：${comment}` : comment,
+    comment: place,
     image: window.pendingImageData,
     datetime,
     id
@@ -369,24 +396,20 @@ document.getElementById("submitCustom").onclick = function () {
   db.collection("posts").add({
     lat,
     lng,
-    comment: newData.comment,
+    comment: place,
     datetime,
     image: window.pendingImageData,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(() => {
-    console.log("Firestoreに保存完了！");
-  }).catch((error) => {
-    console.error("Firestore保存エラー:", error);
   });
 
-  // モーダルを閉じて初期化
+  // 初期化
   document.getElementById("customModal").style.display = "none";
   document.getElementById("customPlace").value = "";
-  document.getElementById("customComment").value = "";
-  document.getElementById("customDatetime").value = "";
   document.getElementById("fileInput").value = '';
   tempLatLng = null;
 };
+  
+
 
 function submitBBS() {
   const input = document.getElementById("bbsInput");
@@ -460,6 +483,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
