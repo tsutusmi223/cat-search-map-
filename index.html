@@ -8,8 +8,7 @@
   <title>画像付き地図アプリ＋掲示板</title>
   <!-- Leaflet（地図ライブラリ） -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <!-- Firebase SDK（互換モード） -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -19,7 +18,7 @@
       apiKey: "AIzaSyD6bNkzZfTjj7jfZkXHcznBQanVaOgsKbI",
       authDomain: "cat-search-map-955f9.firebaseapp.com",
       projectId: "cat-search-map-955f9",
-      storageBucket: "cat-search-map-955f9.firebasestorage.app",
+      storageBucket: "cat-search-map-955f9.appspot.com",
       messagingSenderId: "807316947292",
       appId: "1:807316947292:web:90b6bb68e0f77866c38199",
       measurementId: "G-BDKV31YP20"
@@ -138,8 +137,8 @@
     }
   </style>
 </head>
-<body>
 
+<body>
 <!-- モーダル -->
 <div id="introModal" class="modal">
   <div class="modal-content">
@@ -151,7 +150,7 @@
 
 <!-- 地図と掲示板 -->
 <div id="map"></div>
-  <button id="selectImageBtn" style="position: fixed; top: 10px; left: 10px; z-index: 9999; display: none;">
+<button id="selectImageBtn" style="position: fixed; top: 10px; left: 10px; z-index: 9999; display: none;">
   📷 画像を選ぶ
 </button>
 <input type="file" id="fileInput" accept="image/*" style="display: none;" />
@@ -161,6 +160,15 @@
   <input type="file" id="bbsImageInput" accept="image/*" />
   <button onclick="submitBBS()" style="margin-top: 5px;">📩 投稿</button>
   <div id="bbsList" style="margin-top: 15px;"></div>
+</div>
+
+<!-- カスタム入力モーダル -->
+<div id="customModal" style="display:none; position:fixed; top:20%; left:10%; width:80%; background:white; padding:10px; border:1px solid #ccc; z-index:10000;">
+  <h3>猫の情報を入力</h3>
+  <input type="text" id="customComment" placeholder="コメントを入力" style="width:100%; margin-bottom:5px;" />
+  <input type="datetime-local" id="customDatetime" style="width:100%; margin-bottom:5px;" />
+  <button id="submitCustom">✅ 投稿</button>
+  <button onclick="document.getElementById('customModal').style.display='none'">キャンセル</button>
 </div>
 
 <script>
@@ -239,7 +247,8 @@ function loadMarkersFromStorage() {
     console.error("保存データの読み込みに失敗しました:", e);
   }
 }
-  function loadMarkersFromFirestore() {
+
+function loadMarkersFromFirestore() {
   db.collection("posts").orderBy("timestamp", "desc").get().then((querySnapshot) => {
     querySnapshot.forEach((doc) => {
       const data = doc.data();
@@ -260,7 +269,6 @@ function loadMarkersFromStorage() {
     console.error("Firestore読み込みエラー:", error);
   });
 }
-
 
 function saveMarkersToStorage(markers) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(markers));
@@ -299,57 +307,10 @@ function deleteMarker(marker, index) {
   updateAllPopupContents();
 }
 
-document.getElementById('fileInput').addEventListener('change', function () {
-  const file = this.files[0];
-  if (!file || !tempLatLng) return;
-  if (!file.type.startsWith("image/")) {
-    alert("画像ファイルを選んでください。");
-    return;
+window.deleteMarkerAt = function (index) {
+  if (confirm("このピンを削除しますか？")) {
+    deleteMarker(markerList[index], index);
   }
-  const reader = new FileReader();
-  reader.onload = function (event) {
-    const imageData = event.target.result;
-    if (!imageData) {
-      alert("画像の読み込みに失敗しました。");
-      return;
-    }
-    const comment = prompt("この場所のコメントを入力してください：");
-    if (!comment || comment.trim() === "") return;
-    let datetime = prompt("日付と時間を入力してください（例: 2025-07-03 14:30）", getCurrentDateTime());
-    if (!datetime || datetime.trim() === "") datetime = "未設定";
-    const lat = parseFloat(tempLatLng.lat.toFixed(6));
-    const lng = parseFloat(tempLatLng.lng.toFixed(6));
-    const id = Date.now();
-    const newData = { lat, lng, comment, image: imageData, datetime, id };
-    const index = markerList.length;
-    
-    // ローカル保存
-    addMarkerToStorage(newData);
-    addMarker(newData, index);
-
-    // Firestoreに保存！
-    db.collection("posts").add({
-      lat,
-      lng,
-      comment,
-      datetime,
-      image: imageData,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      console.log("Firestoreに保存完了！");
-    }).catch((error) => {
-      console.error("Firestore保存エラー:", error);
-    });
-
-    document.getElementById('fileInput').value = '';
-    tempLatLng = null;
-  };
-  reader.readAsDataURL(file);
-});
-
-const selectImageBtn = document.getElementById('selectImageBtn');
-selectImageBtn.onclick = () => {
-  document.getElementById('fileInput').click();
 };
 
 map.on('click', function (e) {
@@ -357,23 +318,74 @@ map.on('click', function (e) {
   selectImageBtn.style.display = 'block';
 });
 
-window.deleteMarkerAt = function (index) {
-  if (confirm("このピンを削除しますか？")) {
-    deleteMarker(markerList[index], index);
-  }
+const selectImageBtn = document.getElementById('selectImageBtn');
+selectImageBtn.onclick = () => {
+  document.getElementById('fileInput').click();
 };
 
-function getCurrentDateTime() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
-}
+document.getElementById('fileInput').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file || !tempLatLng) return;
+  if (!file.type.startsWith("image/")) {
+    alert("画像ファイルを選んでください。");
+    return;
+  }
 
-// 掲示板機能
+  const reader = new FileReader();
+  reader.onload = function (event) {
+    const imageData = event.target.result;
+    if (!imageData) {
+      alert("画像の読み込みに失敗しました。");
+      return;
+    }
+
+    window.pendingImageData = imageData;
+    window.pendingLatLng = tempLatLng;
+    document.getElementById("customModal").style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById("submitCustom").onclick = function () {
+  const comment = document.getElementById("customComment").value.trim();
+  const datetime = document.getElementById("customDatetime").value || "未設定";
+  const lat = parseFloat(window.pendingLatLng.lat.toFixed(6));
+  const lng = parseFloat(window.pendingLatLng.lng.toFixed(6));
+  const id = Date.now();
+  const newData = {
+    lat,
+    lng,
+    comment,
+    image: window.pendingImageData,
+    datetime,
+    id
+  };
+  const index = markerList.length;
+
+  addMarkerToStorage(newData);
+  addMarker(newData, index);
+
+  db.collection("posts").add({
+    lat,
+    lng,
+    comment,
+    datetime,
+    image: window.pendingImageData,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    console.log("Firestoreに保存完了！");
+  }).catch((error) => {
+    console.error("Firestore保存エラー:", error);
+  });
+
+  // モーダルを閉じて初期化
+  document.getElementById("customModal").style.display = "none";
+  document.getElementById("customComment").value = "";
+  document.getElementById("customDatetime").value = "";
+  document.getElementById("fileInput").value = '';
+  tempLatLng = null;
+};
+
+
 function submitBBS() {
   const input = document.getElementById("bbsInput");
   const fileInput = document.getElementById("bbsImageInput");
@@ -392,7 +404,6 @@ function submitBBS() {
         return;
       }
 
-      // ✅ ← このブロックが必要！
       saved.push({ text, datetime, image: imageData });
       localStorage.setItem(BBS_KEY, JSON.stringify(saved));
       input.value = "";
@@ -409,8 +420,6 @@ function submitBBS() {
   }
 }
 
-
-
 function renderBBS() {
   const list = document.getElementById("bbsList");
   const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
@@ -426,40 +435,28 @@ function renderBBS() {
 
 function deleteBBS(index) {
   if (!confirm("このコメントを削除しますか？")) return;
-    const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
+  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
   saved.splice(index, 1);
   localStorage.setItem(BBS_KEY, JSON.stringify(saved));
   renderBBS();
 }
+
+function getCurrentDateTime() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
 // 初期読み込み
 loadMarkersFromStorage();
 loadMarkersFromFirestore();
 renderBBS();
 </script>
-<div id="customModal" style="display:none; position:fixed; top:20%; left:10%; width:80%; background:white; padding:10px; border:1px solid #ccc; z-index:10000;">
-  <h3>猫の情報を入力</h3>
-  <input type="text" id="customComment" placeholder="コメントを入力" style="width:100%; margin-bottom:5px;" />
-  <input type="datetime-local" id="customDatetime" style="width:100%; margin-bottom:5px;" />
-  <button id="submitCustom">✅ 投稿</button>
-  <button onclick="document.getElementById('customModal').style.display='none'">キャンセル</button>
-</div>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
