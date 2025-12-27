@@ -285,13 +285,17 @@ function addMarker(data, index) {
   const { lat, lng } = data;
   const marker = L.marker([lat, lng]).addTo(map);
   marker.bindPopup(createPopupContent(data, index));
+  marker.data=data;
   markerList[index] = marker;
 }
 
 function updateAllPopupContents() {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   markerList.forEach((marker, i) => {
+    if(marker.data){
     marker.bindPopup(createPopupContent(saved[i], i));
+    }else{
+      console.warn('markerList[${i}] に data がありません`);
   });
 }
 
@@ -477,6 +481,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
