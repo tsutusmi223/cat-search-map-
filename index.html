@@ -319,9 +319,9 @@ window.deleteMarkerAt = function (index) {
   if (!marker) return;
 
   if (confirm("このピンを削除しますか？")) {
-    // 地図から削除
-    map.removeLayer(marker);
-
+    deleteMarker(marker, index); 
+  }
+};
     // 保存データから削除
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     const deleted = saved.splice(index, 1)[0];
@@ -490,6 +490,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
