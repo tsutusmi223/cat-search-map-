@@ -204,7 +204,7 @@ function createPopupContent(data, index) {
     <div class="comment-list">${commentHtml || 'コメントなし'}</div>
     <div class="comment-box">
       <input type="text" id="comment-input-${id}" placeholder="コメントを追加" />
-      <button onclick="submitComment(${id})">💬 送信</button>
+      <button onclick="submitComment('${id}')">💬 送信</button>
     </div>
     <button class="delete-btn" onclick="deleteMarkerAt(${index})">🗑️ 削除</button>
   `;
@@ -259,6 +259,7 @@ function loadMarkersFromFirestore() {
         datetime: data.datetime,
         image: data.image,
         id: id
+        fromFirestore: true
       };
       const index = markerList.length;
       addMarker(markerData, index);
@@ -476,6 +477,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
