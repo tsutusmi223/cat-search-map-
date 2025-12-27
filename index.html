@@ -300,25 +300,30 @@ function updateAllPopupContents() {
 
 function deleteMarker(marker, index) {
   const data = marker.data;
-  map.removeLayer(marker);
-  markerList.splice(index, 1);
-
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  const deleted = saved.splice(index, 1)[0];
-  saveMarkersToStorage(saved);
-
-  if (!deleted || !deleted.id) {
-    console.warn("削除対象のローカルデータが見つかりませんでした");
-    updateAllPopupContents();
+  if (!data || !data.id) {
+    console.warn("削除対象のデータが見つかりませんでした");
     return;
   }
 
+  map.removeLayer(marker);
+  markerList.splice(index, 1);
+
+  // localStorageから削除（存在する場合のみ）
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  const savedIndex = saved.findIndex(item => item.id === data.id);
+  if (savedIndex !== -1) {
+    saved.splice(savedIndex, 1);
+    saveMarkersToStorage(saved);
+  }
+
+  // コメント削除
   const allComments = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
-  delete allComments[deleted.id];
+  delete allComments[data.id];
   localStorage.setItem(COMMENT_KEY, JSON.stringify(allComments));
 
-  db.collection("posts").doc(deleted.id.toString()).delete().then(() => {
-    console.log("Firestoreからも削除しました");
+  // Firestoreから削除
+  db.collection("posts").doc(data.id).delete().then(() => {
+    console.log("Firestoreからも削除しました: ", data.id);
     loadMarkersFromFirestore();
   }).catch((error) => {
     console.error("Firestore削除エラー:", error.message, "ID:", data.id);
@@ -482,6 +487,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
