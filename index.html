@@ -319,6 +319,7 @@ function deleteMarker(marker, index) {
 
   db.collection("posts").doc(deleted.id.toString()).delete().then(() => {
     console.log("Firestoreからも削除しました");
+    loadMarkersFromFirestore();
   }).catch((error) => {
     console.error("Firestore削除エラー:", error.message, "ID:", data.id);
   });
@@ -481,6 +482,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
