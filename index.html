@@ -322,28 +322,6 @@ window.deleteMarkerAt = function (index) {
     deleteMarker(marker, index); 
   }
 };
-    // 保存データから削除
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    const deleted = saved.splice(index, 1)[0];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-
-    // コメントも削除
-    const allComments = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
-    delete allComments[deleted.id];
-    localStorage.setItem(COMMENT_KEY, JSON.stringify(allComments));
-
-    // マーカーリスト再構成
-    markerList.length = 0;
-    map.eachLayer(layer => {
-      if (layer instanceof L.Marker) {
-        map.removeLayer(layer);
-      }
-    });
-
-    loadMarkersFromStorage();
-    updateAllPopupContents();
-  }
-};
 
 map.on('click', function (e) {
   tempLatLng = e.latlng;
@@ -490,6 +468,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
