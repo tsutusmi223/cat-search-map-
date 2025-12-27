@@ -266,7 +266,7 @@ function loadMarkersFromFirestore() {
     });
     console.log("Firestoreから投稿を読み込みました！");
   }).catch((error) => {
-    console.error("Firestore読み込みエラー:", error.message);
+    console.error("Firestore読み込みエラー:", error.message, "ID:", data.id);
   });
 }
 
@@ -481,6 +481,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
