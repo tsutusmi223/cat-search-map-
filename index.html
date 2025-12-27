@@ -387,6 +387,7 @@ document.getElementById("submitCustom").onclick = function () {
   const datetime = getCurrentDateTime(); // ← 自動で現在時刻
   const lat = parseFloat(window.pendingLatLng.lat.toFixed(6));
   const lng = parseFloat(window.pendingLatLng.lng.toFixed(6));
+  const id = Date.now().toString();
   const id = Date.now();
   const newData = {
     lat,
@@ -397,10 +398,8 @@ document.getElementById("submitCustom").onclick = function () {
     id
   };
   const index = markerList.length;
-
   addMarkerToStorage(newData);
   addMarker(newData, index);
-
   db.collection("posts").add({
     lat,
     lng,
@@ -491,6 +490,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
