@@ -399,7 +399,8 @@ document.getElementById("submitCustom").onclick = function () {
   const index = markerList.length;
   addMarkerToStorage(newData);
   addMarker(newData, index);
-  db.collection("posts").add({
+  db.collection("posts").doc(id).set({
+    id,
     lat,
     lng,
     comment: place,
@@ -489,6 +490,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
