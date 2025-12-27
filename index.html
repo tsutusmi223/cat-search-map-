@@ -297,22 +297,30 @@ function updateAllPopupContents() {
 function deleteMarker(marker, index) {
   map.removeLayer(marker);
   markerList.splice(index, 1);
+
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   const deleted = saved.splice(index, 1)[0];
   saveMarkersToStorage(saved);
+
+  if (!deleted || !deleted.id) {
+    console.warn("削除対象のローカルデータが見つかりませんでした");
+    updateAllPopupContents();
+    return;
+  }
+
   const allComments = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
   delete allComments[deleted.id];
   localStorage.setItem(COMMENT_KEY, JSON.stringify(allComments));
-  // 🔽 Firestoreからも削除（ここが追加ポイント！）
-  if (deleted.id) {
-    db.collection("posts").doc(deleted.id.toString()).delete().then(() => {
-      console.log("Firestoreからも削除しました");
-    }).catch((error) => {
-      console.error("Firestore削除エラー:", error);
-    });
-  }
+
+  db.collection("posts").doc(deleted.id.toString()).delete().then(() => {
+    console.log("Firestoreからも削除しました");
+  }).catch((error) => {
+    console.error("Firestore削除エラー:", error);
+  });
+
   updateAllPopupContents();
 }
+
 
 window.deleteMarkerAt = function (index) {
   const marker = markerList[index];
@@ -468,6 +476,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
