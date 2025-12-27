@@ -388,7 +388,6 @@ document.getElementById("submitCustom").onclick = function () {
   const lat = parseFloat(window.pendingLatLng.lat.toFixed(6));
   const lng = parseFloat(window.pendingLatLng.lng.toFixed(6));
   const id = Date.now().toString();
-  const id = Date.now();
   const newData = {
     lat,
     lng,
@@ -490,6 +489,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
