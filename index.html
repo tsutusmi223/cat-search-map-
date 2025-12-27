@@ -299,6 +299,7 @@ function updateAllPopupContents() {
 }
 
 function deleteMarker(marker, index) {
+  const data = marker.data;
   map.removeLayer(marker);
   markerList.splice(index, 1);
 
@@ -480,6 +481,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
