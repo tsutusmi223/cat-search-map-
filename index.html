@@ -376,7 +376,7 @@ document.getElementById('fileInput').addEventListener('change', function () {
 });
 document.getElementById("submitCustom").onclick = function () {
   const place = document.getElementById("customPlace").value.trim();
-  if (!place) {
+  if (!place| !place.trim()) {
     alert("場所を入力してください。");
     return;
   }
@@ -487,6 +487,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
