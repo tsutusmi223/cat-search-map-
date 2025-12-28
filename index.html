@@ -139,6 +139,7 @@
 </head>
 
 <body>
+  
 <!-- モーダル -->
 <div id="introModal" class="modal">
   <div class="modal-content">
@@ -375,10 +376,10 @@ document.getElementById('fileInput').addEventListener('change', function () {
   reader.readAsDataURL(file);
 });
 document.getElementById("submitCustom").onclick = function () {
-  const place = document.getElementById("customPlace").value.trim();
-  if (!place| !place.trim()) {
-    alert("場所を入力してください。");
-    return;
+  const place = prompt("場所を入力してください");
+  if (!place || !place.trim()) { 
+    alert("場所が入力されていません。キャンセルしました。"); 
+    return; 
   }
 
   const datetime = getCurrentDateTime(); // ← 自動で現在時刻
@@ -487,6 +488,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
