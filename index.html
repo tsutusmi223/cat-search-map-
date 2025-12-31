@@ -135,6 +135,20 @@
       padding: 8px 16px;
       font-size: 1em;
     }
+    .custom-modal {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 10000;
+      display: none;
+    }
+
   </style>
 </head>
 
@@ -162,14 +176,20 @@
   <button onclick="submitBBS()" style="margin-top: 5px;">📩 投稿</button>
   <div id="bbsList" style="margin-top: 15px;"></div>
 </div>
-
-<!-- カスタム入力モーダル（場所のみ） -->
-<div id="customModal" style="display:none; position:fixed; top:20%; left:10%; width:80%; background:white; padding:10px; border:1px solid #ccc; z-index:10000;">
-  <h3>猫の場所を入力</h3>
-  <input type="text" id="customPlace" placeholder="例：〇〇公園、△△通りなど" style="width:100%; margin-bottom:10px;" />
-  <button id="submitCustom">✅ 投稿</button>
-  <button onclick="document.getElementById('customModal').style.display='none'">キャンセル</button>
+  
+<!-- カスタムプロンプト風モーダル -->
+<div id="customModal" class="custom-modal">
+  <div class="modal-content">
+    <h3>このページの内容</h3>
+    <label for="customPlace">この場所のコメントを入力してください：</label><br>
+    <input type="text" id="customPlace" style="width: 100%; margin-top: 8px;" />
+    <div style="margin-top: 12px;">
+      <button id="submitCustom">OK</button>
+      <button onclick="closeCustomModal()">キャンセル</button>
+    </div>
+  </div>
 </div>
+
 
 <script>
 function closeIntro() {
@@ -298,6 +318,35 @@ function updateAllPopupContents() {
     }
   });
 }
+  function showCustomModal(callback) {
+  const modal = document.getElementById("customModal");
+  const input = document.getElementById("customPlace");
+  modal.style.display = "block";
+  input.value = "";
+  input.focus();
+
+  const submitBtn = document.getElementById("submitCustom");
+
+  function cleanup() {
+    modal.style.display = "none";
+    submitBtn.onclick = null;
+  }
+
+  submitBtn.onclick = () => {
+    const value = input.value.trim();
+    if (!value) {
+      alert("コメントを入力してください。");
+      return;
+    }
+    cleanup();
+    callback(value);
+  };
+}
+
+function closeCustomModal() {
+  document.getElementById("customModal").style.display = "none";
+}
+
 
 function deleteMarker(marker, index) {
   const data = marker.data;
@@ -362,57 +411,48 @@ document.getElementById('fileInput').addEventListener('change', function () {
   }
 
   const reader = new FileReader();
-  reader.onload = function (event) {
-    const imageData = event.target.result;
-    if (!imageData) {
-      alert("画像の読み込みに失敗しました。");
-      return;
-    }
-
-    window.pendingImageData = imageData;
-    window.pendingLatLng = tempLatLng;
-    document.getElementById("customModal").style.display = "block";
-  };
-  reader.readAsDataURL(file);
-});
-document.getElementById("submitCustom").onclick = function () {
-  const place = prompt("場所を入力してください");
-  if (!place || !place.trim()) { 
-    alert("場所が入力されていません。キャンセルしました。"); 
-    return; 
+reader.onload = function (event) {
+  const imageData = event.target.result;
+  if (!imageData) {
+    alert("画像の読み込みに失敗しました。");
+    return;
   }
 
-  const datetime = getCurrentDateTime(); // ← 自動で現在時刻
-  const lat = parseFloat(window.pendingLatLng.lat.toFixed(6));
-  const lng = parseFloat(window.pendingLatLng.lng.toFixed(6));
-  const id = Date.now().toString();
-  const newData = {
-    lat,
-    lng,
-    comment: place,
-    image: window.pendingImageData,
-    datetime,
-    id
-  };
-  const index = markerList.length;
-  addMarkerToStorage(newData);
-  addMarker(newData, index);
-  db.collection("posts").doc(id).set({
-    id,
-    lat,
-    lng,
-    comment: place,
-    datetime,
-    image: window.pendingImageData,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  window.pendingImageData = imageData;
+  window.pendingLatLng = tempLatLng;
 
-  // 初期化
-  document.getElementById("customModal").style.display = "none";
-  document.getElementById("customPlace").value = "";
-  document.getElementById("fileInput").value = '';
-  tempLatLng = null;
+  showCustomModal((place) => {
+    const datetime = getCurrentDateTime();
+    const lat = parseFloat(tempLatLng.lat.toFixed(6));
+    const lng = parseFloat(tempLatLng.lng.toFixed(6));
+    const id = Date.now().toString();
+    const newData = {
+      lat,
+      lng,
+      comment: place,
+      image: imageData,
+      datetime,
+      id
+    };
+    const index = markerList.length;
+    addMarkerToStorage(newData);
+    addMarker(newData, index);
+    db.collection("posts").doc(id).set({
+      id,
+      lat,
+      lng,
+      comment: place,
+      datetime,
+      image: imageData,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // 初期化
+    document.getElementById("fileInput").value = '';
+    tempLatLng = null;
+  });
 };
+
   
 
 
@@ -488,6 +528,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
