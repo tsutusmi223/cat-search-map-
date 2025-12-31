@@ -452,9 +452,7 @@ reader.onload = function (event) {
     tempLatLng = null;
   });
 };
-
-  
-
+reader.readAsDataURL(file);
 
 function submitBBS() {
   const input = document.getElementById("bbsInput");
@@ -528,6 +526,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
