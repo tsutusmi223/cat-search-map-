@@ -135,20 +135,6 @@
       padding: 8px 16px;
       font-size: 1em;
     }
-    .custom-modal {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      border: 1px solid #ccc;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      z-index: 10000;
-      display: none;
-    }
-
   </style>
 </head>
 
@@ -213,19 +199,11 @@ let tempLatLng = null;
 const markerList = [];
 
 function createPopupContent(data, index) {
-  const { comment, image, lat, lng, datetime, id } = data;
-  const comments = getCommentsForMarker(id);
-  const commentHtml = comments.map(c => `<div>・${c.text} <small>(${c.datetime})</small></div>`).join('');
+  const { image, lat, lng, datetime } = data;
   return `
-    <b>コメント:</b><br>${comment}<br>
     <b>日時:</b> ${datetime || '未設定'}<br>
     <img src="${image}" class="popup-img"><br>
     <small>緯度: ${lat}<br>経度: ${lng}</small><br>
-    <div class="comment-list">${commentHtml || 'コメントなし'}</div>
-    <div class="comment-box">
-      <input type="text" id="comment-input-${id}" placeholder="コメントを追加" />
-      <button onclick="submitComment('${id}')">💬 送信</button>
-    </div>
     <button class="delete-btn" onclick="deleteMarkerAt(${index})">🗑️ 削除</button>
   `;
 }
@@ -417,39 +395,33 @@ reader.onload = function (event) {
     return;
   }
 
-  window.pendingImageData = imageData;
-  window.pendingLatLng = tempLatLng;
-
-  showCustomModal((place) => {
-    const datetime = getCurrentDateTime();
-    const lat = parseFloat(tempLatLng.lat.toFixed(6));
-    const lng = parseFloat(tempLatLng.lng.toFixed(6));
-    const id = Date.now().toString();
-    const newData = {
-      lat,
-      lng,
-      comment: place,
-      image: imageData,
-      datetime,
-      id
-    };
-    const index = markerList.length;
-    addMarkerToStorage(newData);
-    addMarker(newData, index);
-    db.collection("posts").doc(id).set({
-      id,
-      lat,
-      lng,
-      comment: place,
-      datetime,
-      image: imageData,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // 初期化
-    document.getElementById("fileInput").value = '';
-    tempLatLng = null;
+  const datetime = getCurrentDateTime();
+  const lat = parseFloat(tempLatLng.lat.toFixed(6));
+  const lng = parseFloat(tempLatLng.lng.toFixed(6));
+  const id = Date.now().toString();
+  const newData = {
+    lat,
+    lng,
+    image: imageData,
+    datetime,
+    id
+  };
+  const index = markerList.length;
+  addMarkerToStorage(newData);
+  addMarker(newData, index);
+  db.collection("posts").doc(id).set({
+    id,
+    lat,
+    lng,
+    datetime,
+    image: imageData,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
   });
+
+  document.getElementById("fileInput").value = '';
+  tempLatLng = null;
+};
+
 };
 reader.readAsDataURL(file);
 
@@ -525,6 +497,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
