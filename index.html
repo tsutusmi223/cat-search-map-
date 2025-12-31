@@ -194,13 +194,11 @@ function closeIntro() {
   document.getElementById("introModal").style.display = "none";
   setTimeout(() => {
     document.getElementById("map").style.display = "block";
-    document.getElementById("bbs").style.display = "block";
     map.invalidateSize();
   }, 100);
 }
 
 const STORAGE_KEY = 'savedMarkers';
-const COMMENT_KEY = 'markerComments';
 const BBS_KEY = 'bbsMessages';
 
 const map = L.map('map').setView([38.725213, 139.827071], 15);
@@ -219,28 +217,6 @@ function createPopupContent(data, index) {
     <small>緯度: ${lat}<br>経度: ${lng}</small><br>
     <button class="delete-btn" onclick="deleteMarkerAt(${index})">🗑️ 削除</button>
   `;
-}
-
-function getCommentsForMarker(id) {
-  const all = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
-  return all[id] || [];
-}
-
-function addCommentToStorage(id, text) {
-  const all = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
-  const datetime = getCurrentDateTime();
-  if (!all[id]) all[id] = [];
-  all[id].push({ text, datetime });
-  localStorage.setItem(COMMENT_KEY, JSON.stringify(all));
-}
-
-function submitComment(id) {
-  const input = document.getElementById(`comment-input-${id}`);
-  const text = input.value.trim();
-  if (!text) return;
-  addCommentToStorage(id, text);
-  input.value = "";
-  updateAllPopupContents();
 }
 
 function loadMarkersFromStorage() {
@@ -298,15 +274,6 @@ function addMarker(data, index) {
   marker.bindPopup(createPopupContent(data, index));
   marker.data=data;
   markerList[index] = marker;
-}
-function updateAllPopupContents() {
-  markerList.forEach((marker, i) => {
-    if (marker.data) {
-      marker.bindPopup(createPopupContent(marker.data, i));
-    } else {
-      console.warn(`markerList[${i}] に data がありません`);
-    }
-  });
 }
   function showCustomModal(callback) {
   const modal = document.getElementById("customModal");
@@ -438,60 +405,6 @@ reader.onload = function (event) {
 };
 reader.readAsDataURL(file);
 
-function submitBBS() {
-  const input = document.getElementById("bbsInput");
-  const fileInput = document.getElementById("bbsImageInput");
-  const text = input.value.trim();
-  const file = fileInput.files[0];
-  if (!text && !file) return;
-  const datetime = getCurrentDateTime();
-  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
-
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function (event) {
-      const imageData = event.target.result;
-      if (!imageData) {
-        alert("画像の読み込みに失敗しました。");
-        return;
-      }
-
-      saved.push({ text, datetime, image: imageData });
-      localStorage.setItem(BBS_KEY, JSON.stringify(saved));
-      input.value = "";
-      fileInput.value = "";
-      renderBBS();
-    };
-    reader.readAsDataURL(file);
-  } else {
-    saved.push({ text, datetime, image: null });
-    localStorage.setItem(BBS_KEY, JSON.stringify(saved));
-    input.value = "";
-    fileInput.value = "";
-    renderBBS();
-  }
-}
-
-function renderBBS() {
-  const list = document.getElementById("bbsList");
-  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
-  list.innerHTML = saved.map((msg, index) => `
-    <div class="bbs-message">
-      <button class="bbs-delete" onclick="deleteBBS(${index})">削除</button>
-      ${msg.text ? `<div>${msg.text}</div>` : ""}
-      ${msg.image ? `<img src="${msg.image}" class="bbs-image">` : ""}
-      <div class="bbs-meta">🕒 ${msg.datetime}</div>
-    </div>
-  `).join('');
-}
-
-function deleteBBS(index) {
-  if (!confirm("このコメントを削除しますか？")) return;
-  const saved = JSON.parse(localStorage.getItem(BBS_KEY) || "[]");
-  saved.splice(index, 1);
-  localStorage.setItem(BBS_KEY, JSON.stringify(saved));
-  renderBBS();
-}
 
 function getCurrentDateTime() {
   const d = new Date();
