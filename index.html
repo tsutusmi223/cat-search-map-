@@ -304,7 +304,6 @@ function closeCustomModal() {
   document.getElementById("customModal").style.display = "none";
 }
 
-
 function deleteMarker(marker, index) {
   const data = marker.data;
   if (!data || !data.id) {
@@ -338,7 +337,6 @@ function deleteMarker(marker, index) {
 
   updateAllPopupContents();
 }
-
 
 window.deleteMarkerAt = function (index) {
   const marker = markerList[index];
@@ -401,10 +399,9 @@ reader.onload = function (event) {
   document.getElementById("fileInput").value = '';
   tempLatLng = null;
 };
-
-};
+  
 reader.readAsDataURL(file);
-
+]);
 
 function getCurrentDateTime() {
   const d = new Date();
@@ -423,6 +420,7 @@ renderBBS();
 </script>
 </body>
 </html>
+
 
 
 
