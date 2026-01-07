@@ -5,13 +5,15 @@
   <meta name="description" content="鶴岡市周辺で目撃された猫の情報を地図で共有！茶トラ、黒猫、白猫などの出現場所をみんなで記録しよう。" />
   <meta name="keywords" content="猫, 鶴岡, 地図, 猫マップ, 猫の目撃情報, cat map, tsuruoka" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>画像付き地図アプリ＋掲示板</title>
+  <title>画像付き地図アプリ</title>
+
   <!-- Leaflet（地図ライブラリ） -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<!-- Firebase SDK（互換モード） -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Firebase SDK（互換モード） -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -35,16 +37,19 @@
       font-family: sans-serif;
       overflow-y: scroll;
     }
+
     #map {
       height: 60vh;
       width: 100%;
       display: none;
     }
+
     #fileInput {
       opacity: 0;
       position: fixed;
       top: -100px;
     }
+
     .popup-img {
       max-width: 100%;
       height: auto;
@@ -52,6 +57,7 @@
       margin: 5px 0;
       border-radius: 4px;
     }
+
     .delete-btn {
       background: red;
       color: white;
@@ -59,58 +65,6 @@
       padding: 5px 8px;
       cursor: pointer;
       border-radius: 3px;
-    }
-    .comment-box {
-      margin-top: 5px;
-    }
-    .comment-list {
-      font-size: 0.9em;
-      margin-top: 5px;
-      background: #f0f0f0;
-      padding: 5px;
-      border-radius: 5px;
-    }
-    #bbs {
-      padding: 15px;
-      background: #f9f9f9;
-      display: none;
-    }
-    #bbs textarea {
-      width: 100%;
-      padding: 8px;
-      font-size: 1em;
-    }
-    #bbs input[type="file"] {
-      margin-top: 5px;
-    }
-    .bbs-message {
-      background: #e0f7fa;
-      padding: 8px;
-      margin-bottom: 8px;
-      border-radius: 5px;
-      position: relative;
-    }
-    .bbs-meta {
-      font-size: 0.8em;
-      color: #555;
-    }
-    .bbs-image {
-      max-width: 100%;
-      height: auto;
-      margin-top: 5px;
-      border-radius: 4px;
-    }
-    .bbs-delete {
-      background: #d32f2f;
-      color: white;
-      border: none;
-      padding: 3px 6px;
-      font-size: 0.8em;
-      border-radius: 3px;
-      cursor: pointer;
-      position: absolute;
-      top: 5px;
-      right: 5px;
     }
 
     .modal {
@@ -123,6 +77,7 @@
       justify-content: center;
       z-index: 9999;
     }
+
     .modal-content {
       background: white;
       padding: 20px;
@@ -130,65 +85,49 @@
       text-align: center;
       max-width: 90%;
     }
+
     .modal-content button {
       margin-top: 15px;
       padding: 8px 16px;
       font-size: 1em;
     }
-.custom-modal {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  border: 1px solid #ccc;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  z-index: 10000;
-  display: none;
-}
+
+    .custom-modal {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 10000;
+      display: none;
+    }
   </style>
 </head>
 
+
 <body>
-  
-<!-- モーダル -->
+
+<!-- 初回表示モーダル -->
 <div id="introModal" class="modal">
   <div class="modal-content">
-    <h2>📍 写真＋コメント＋日時付きマップ</h2>
-    <p>地図をタップ → 画像を選択 → コメント・日時を入力してピンを追加できます。</p>
+    <h2>📍 写真＋日時付きマップ</h2>
+    <p>地図をタップ → 画像を選択 → ピンを追加できます。</p>
     <button onclick="closeIntro()">OK</button>
   </div>
 </div>
 
-<!-- 地図と掲示板 -->
+<!-- 地図と画像選択 -->
 <div id="map"></div>
 <button id="selectImageBtn" style="position: fixed; top: 10px; left: 10px; z-index: 9999; display: none;">
   📷 画像を選ぶ
 </button>
 <input type="file" id="fileInput" accept="image/*" style="display: none;" />
-<div id="bbs">
-  <h3>🗨️ 掲示板</h3>
-  <textarea id="bbsInput" rows="3" placeholder="メッセージを入力..."></textarea>
-  <input type="file" id="bbsImageInput" accept="image/*" />
-  <button onclick="submitBBS()" style="margin-top: 5px;">📩 投稿</button>
-  <div id="bbsList" style="margin-top: 15px;"></div>
-</div>
-  
-<!-- カスタムプロンプト風モーダル -->
-<div id="customModal" class="custom-modal">
-  <div class="modal-content">
-    <h3>このページの内容</h3>
-    <label for="customPlace">この場所のコメントを入力してください：</label><br>
-    <input type="text" id="customPlace" style="width: 100%; margin-top: 8px;" />
-    <div style="margin-top: 12px;">
-      <button id="submitCustom">OK</button>
-      <button onclick="closeCustomModal()">キャンセル</button>
-    </div>
-  </div>
-</div>
 
+<!-- スクリプト -->
 <script>
 function closeIntro() {
   document.getElementById("introModal").style.display = "none";
@@ -199,7 +138,6 @@ function closeIntro() {
 }
 
 const STORAGE_KEY = 'savedMarkers';
-const BBS_KEY = 'bbsMessages';
 
 const map = L.map('map').setView([38.725213, 139.827071], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -242,7 +180,6 @@ function loadMarkersFromFirestore() {
       const markerData = {
         lat: data.lat,
         lng: data.lng,
-        comment: data.comment,
         datetime: data.datetime,
         image: data.image,
         id: id,
@@ -253,7 +190,7 @@ function loadMarkersFromFirestore() {
     });
     console.log("Firestoreから投稿を読み込みました！");
   }).catch((error) => {
-    console.error("Firestore読み込みエラー:", error.message, "ID:", data.id);
+    console.error("Firestore読み込みエラー:", error.message);
   });
 }
 
@@ -272,36 +209,8 @@ function addMarker(data, index) {
   const { lat, lng } = data;
   const marker = L.marker([lat, lng]).addTo(map);
   marker.bindPopup(createPopupContent(data, index));
-  marker.data=data;
+  marker.data = data;
   markerList[index] = marker;
-}
-  function showCustomModal(callback) {
-  const modal = document.getElementById("customModal");
-  const input = document.getElementById("customPlace");
-  modal.style.display = "block";
-  input.value = "";
-  input.focus();
-
-  const submitBtn = document.getElementById("submitCustom");
-
-  function cleanup() {
-    modal.style.display = "none";
-    submitBtn.onclick = null;
-  }
-
-  submitBtn.onclick = () => {
-    const value = input.value.trim();
-    if (!value) {
-      alert("コメントを入力してください。");
-      return;
-    }
-    cleanup();
-    callback(value);
-  };
-}
-
-function closeCustomModal() {
-  document.getElementById("customModal").style.display = "none";
 }
 
 function deleteMarker(marker, index) {
@@ -314,7 +223,6 @@ function deleteMarker(marker, index) {
   map.removeLayer(marker);
   markerList.splice(index, 1);
 
-  // localStorageから削除（存在する場合のみ）
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   const savedIndex = saved.findIndex(item => item.id === data.id);
   if (savedIndex !== -1) {
@@ -322,28 +230,19 @@ function deleteMarker(marker, index) {
     saveMarkersToStorage(saved);
   }
 
-  // コメント削除
-  const allComments = JSON.parse(localStorage.getItem(COMMENT_KEY) || "{}");
-  delete allComments[data.id];
-  localStorage.setItem(COMMENT_KEY, JSON.stringify(allComments));
-
-  // Firestoreから削除
   db.collection("posts").doc(data.id).delete().then(() => {
     console.log("Firestoreからも削除しました: ", data.id);
     loadMarkersFromFirestore();
   }).catch((error) => {
-    console.error("Firestore削除エラー:", error.message, "ID:", data.id);
+    console.error("Firestore削除エラー:", error.message);
   });
-
-  updateAllPopupContents();
 }
 
 window.deleteMarkerAt = function (index) {
   const marker = markerList[index];
   if (!marker) return;
-
   if (confirm("このピンを削除しますか？")) {
-    deleteMarker(marker, index); 
+    deleteMarker(marker, index);
   }
 };
 
@@ -366,41 +265,40 @@ document.getElementById('fileInput').addEventListener('change', function () {
   }
 
   const reader = new FileReader();
-reader.onload = function (event) {
-  const imageData = event.target.result;
-  if (!imageData) {
-    alert("画像の読み込みに失敗しました。");
-    return;
-  }
+  reader.onload = function (event) {
+    const imageData = event.target.result;
+    if (!imageData) {
+      alert("画像の読み込みに失敗しました。");
+      return;
+    }
 
-  const datetime = getCurrentDateTime();
-  const lat = parseFloat(tempLatLng.lat.toFixed(6));
-  const lng = parseFloat(tempLatLng.lng.toFixed(6));
-  const id = Date.now().toString();
-  const newData = {
-    lat,
-    lng,
-    image: imageData,
-    datetime,
-    id
+    const datetime = getCurrentDateTime();
+    const lat = parseFloat(tempLatLng.lat.toFixed(6));
+    const lng = parseFloat(tempLatLng.lng.toFixed(6));
+    const id = Date.now().toString();
+    const newData = {
+      lat,
+      lng,
+      image: imageData,
+      datetime,
+      id
+    };
+    const index = markerList.length;
+    addMarkerToStorage(newData);
+    addMarker(newData, index);
+    db.collection("posts").doc(id).set({
+      id,
+      lat,
+      lng,
+      datetime,
+      image: imageData,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById("fileInput").value = '';
+    tempLatLng = null;
   };
-  const index = markerList.length;
-  addMarkerToStorage(newData);
-  addMarker(newData, index);
-  db.collection("posts").doc(id).set({
-    id,
-    lat,
-    lng,
-    datetime,
-    image: imageData,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  document.getElementById("fileInput").value = '';
-  tempLatLng = null;
-};
-  
-reader.readAsDataURL(file);
+  reader.readAsDataURL(file);
 });
 
 function getCurrentDateTime() {
@@ -416,40 +314,6 @@ function getCurrentDateTime() {
 // 初期読み込み
 loadMarkersFromStorage();
 loadMarkersFromFirestore();
-renderBBS();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
