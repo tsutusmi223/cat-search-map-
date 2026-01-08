@@ -15,7 +15,7 @@ fetch('result.csv')
           if (["kuro", "mike", "tora", "buti", "siro", "abi", "sabi"].includes(label) && confidence > 0.5) {
             const lat = parseFloat(row.lat);
             const lng = parseFloat(row.lng);
-            const imgPath = `images/${row.filename}`;
+            const imgPath = `${row.filename}`;
             const popupContent = `
               <strong>${label} (${confidence})</strong><br>
               <img src="${imgPath}" class="popup-img" />
