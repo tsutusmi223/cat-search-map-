@@ -24,7 +24,7 @@ fetch('result.csv')
 
     rows.forEach(row => {
       const confidence = parseFloat(row.confidence);
-      const label = row.label.toLowerCase();
+      const label = row.labeltrim().toLowerCase();
 
       // 表示する猫の種類と信頼度の条件
       const validLabels = Object.keys(labelMap);
