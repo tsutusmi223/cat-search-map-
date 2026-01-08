@@ -204,7 +204,7 @@ function addMarkerToStorage(data) {
 
 function addMarker(data, index) {
   const { lat, lng } = data;
-  const marker = L.marker([lat, lng]).addTo(map);
+  const marker = L.marker([lat, lng]).addTo(mymap);
   marker.bindPopup(createPopupContent(data, index));
   marker.data = data;
   markerList[index] = marker;
@@ -311,6 +311,7 @@ loadMarkersFromFirestore();
 <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
