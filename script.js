@@ -36,7 +36,7 @@ fetch('result.csv')
       if (confidence > 0.5 && validLabels.includes(label)) {
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.lng);
-        const imgPath = `${row.filename}`; // 画像が index.html と同じ場所にある前提
+        const imgPath = `images/${row.filename}`; 
 
         const labelName = labelMap[label] || label;
 
