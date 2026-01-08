@@ -3,10 +3,11 @@ const existingMap = document.getElementById('map');
 if (existingMap._leaflet_id) {
   existingMap._leaflet_id = null;
 }
-// 地図の初期化（変数名を myMap に変更してエラー回避）
+
+// 地図の初期化
 const myMap = L.map('map').setView([38.725213, 139.827071], 15);
 
-// タイルレイヤーの追加（OpenStreetMap）
+// タイルレイヤーの追加
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).setZIndex(0).addTo(myMap);
@@ -29,14 +30,13 @@ fetch('result.csv')
 
     rows.forEach(row => {
       const confidence = parseFloat(row.confidence);
-      const label = row.label.trim().toLowerCase(); // ← 修正済み！
+      const label = row.label.trim().toLowerCase();
 
-      // 表示する猫の種類と信頼度の条件
       const validLabels = Object.keys(labelMap);
       if (confidence > 0.5 && validLabels.includes(label)) {
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.lng);
-       const imgPath = `images/${row.filename.trim()}`;
+        const imgPath = `images/${row.filename.trim()}`; // ← 修正！
 
         const labelName = labelMap[label] || label;
 
@@ -52,10 +52,12 @@ fetch('result.csv')
       }
     });
   });
+
+// 🔧 追加：ボタンの取得
 const selectImageBtn = document.getElementById('selectImageBtn');
 
+// 地図クリック時の処理
 myMap.on('click', function (e) {
   tempLatLng = e.latlng;
   selectImageBtn.style.display = 'block';
 });
-
