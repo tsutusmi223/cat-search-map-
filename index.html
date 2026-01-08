@@ -243,11 +243,6 @@ window.deleteMarkerAt = function (index) {
   }
 };
 
-myMap.on('click', function (e) {
-  tempLatLng = e.latlng;
-  selectImageBtn.style.display = 'block';
-});
-
 const selectImageBtn = document.getElementById('selectImageBtn');
 selectImageBtn.onclick = () => {
   document.getElementById('fileInput').click();
@@ -316,6 +311,7 @@ loadMarkersFromFirestore();
 <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
