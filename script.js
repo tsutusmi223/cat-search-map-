@@ -217,3 +217,12 @@ function getCurrentDateTime() {
 // 初期読み込み
 loadMarkersFromStorage();
 loadMarkersFromFirestore();
+
+window.closeIntro = function () {
+  document.getElementById("introModal").style.display = "none";
+  setTimeout(() => {
+    document.getElementById("map").style.display = "block";
+    myMap.invalidateSize();
+  }, 100);
+};
+
