@@ -3,7 +3,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-fetch('data/result.csv')
+fetch('result.csv')
   .then(response => response.text())
   .then(csvText => {
     Papa.parse(csvText, {
