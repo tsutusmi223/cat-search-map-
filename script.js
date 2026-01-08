@@ -1,3 +1,8 @@
+// すでに初期化されていたら削除（保険）
+const existingMap = document.getElementById('map');
+if (existingMap._leaflet_id) {
+  existingMap._leaflet_id = null;
+}
 // 地図の初期化（変数名を myMap に変更してエラー回避）
 const myMap = L.map('map').setView([38.725213, 139.827071], 15);
 
