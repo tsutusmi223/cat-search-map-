@@ -135,7 +135,7 @@ function closeIntro() {
   document.getElementById("introModal").style.display = "none";
   setTimeout(() => {
     document.getElementById("map").style.display = "block";
-    map.invalidateSize();
+    mymap.invalidateSize();
   }, 100);
 }
 
@@ -316,6 +316,7 @@ loadMarkersFromFirestore();
 <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
