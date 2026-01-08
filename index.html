@@ -217,7 +217,7 @@ function deleteMarker(marker, index) {
     return;
   }
 
-  map.removeLayer(marker);
+  myMap.removeLayer(marker);
   markerList.splice(index, 1);
 
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -316,6 +316,7 @@ loadMarkersFromFirestore();
 <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
