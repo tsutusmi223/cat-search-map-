@@ -36,7 +36,7 @@ fetch('result.csv')
       if (confidence > 0.5 && validLabels.includes(label)) {
         const lat = parseFloat(row.lat);
         const lng = parseFloat(row.lng);
-        const imgPath = `images/${row.filename}`; 
+       const imgPath = `images/${row.filename.trim()}`;
 
         const labelName = labelMap[label] || label;
 
@@ -52,3 +52,10 @@ fetch('result.csv')
       }
     });
   });
+const selectImageBtn = document.getElementById('selectImageBtn');
+
+myMap.on('click', function (e) {
+  tempLatLng = e.latlng;
+  selectImageBtn.style.display = 'block';
+});
+
