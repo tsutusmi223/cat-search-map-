@@ -175,65 +175,56 @@ fileInput.addEventListener('change', function () {
 
   const reader = new FileReader();
   reader.onload = function (event) {
-    const imageData = event.target.result;
-    if (!imageData) {
-      alert("画像の読み込みに失敗しました。");
-      return;
-    }
-    const img = new Image();
-img.src = imageData;
-img.onload = async () => {
-  const tensor = tf.browser.fromPixels(img)
-    .resizeNearestNeighbor([224, 224])
-    .toFloat()
-    .expandDims();
+  const imageData = event.target.result;
+  if (!imageData) {
+    alert("画像の読み込みに失敗しました。");
+    return;
+  }
 
-  const prediction = await model.predict(tensor).data();
-  const labelIndex = prediction.indexOf(Math.max(...prediction));
-  const labels = ["黒猫", "三毛猫", "白猫"]; // Teachable Machineで設定した順番に合わせて！
-  const label = labels[labelIndex];
-  const confidence = prediction[labelIndex];
+  const datetime = getCurrentDateTime();
+  const lat = parseFloat(tempLatLng.lat.toFixed(6));
+  const lng = parseFloat(tempLatLng.lng.toFixed(6));
+  const id = Date.now().toString();
 
-  newData.label = label;
-  newData.confidence = confidence;
+  // 先に newData を作っておく！
+  const newData = {
+    lat,
+    lng,
+    image: imageData,
+    datetime,
+    id
+  };
 
-  // ここから下は既存の処理と同じ
-  const index = markerList.length;
-  addMarkerToStorage(newData);
-  addMarker(newData, index);
-  db.collection("posts").doc(id).set({
-    ...newData,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
-};
+  const img = new Image();
+  img.src = imageData;
+  img.onload = async () => {
+    const tensor = tf.browser.fromPixels(img)
+      .resizeNearestNeighbor([224, 224])
+      .toFloat()
+      .expandDims();
 
+    const prediction = await model.predict(tensor).data();
+    const labelIndex = prediction.indexOf(Math.max(...prediction));
+    const labels = ["黒猫", "三毛猫", "白猫"];
+    const label = labels[labelIndex];
+    const confidence = prediction[labelIndex];
 
-    const datetime = getCurrentDateTime();
-    const lat = parseFloat(tempLatLng.lat.toFixed(6));
-    const lng = parseFloat(tempLatLng.lng.toFixed(6));
-    const id = Date.now().toString();
-    const newData = {
-      lat,
-      lng,
-      image: imageData,
-      datetime,
-      id
-    };
+    // ここで分類結果を newData に追加！
+    newData.label = label;
+    newData.confidence = confidence;
+
     const index = markerList.length;
     addMarkerToStorage(newData);
     addMarker(newData, index);
     db.collection("posts").doc(id).set({
-      id,
-      lat,
-      lng,
-      datetime,
-      image: imageData,
+      ...newData,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
 
     fileInput.value = '';
     tempLatLng = null;
   };
+};
   reader.readAsDataURL(file);
 });
 
