@@ -1,4 +1,10 @@
 // 地図の初期化（保険：すでに初期化されていたらリセット）
+let model;
+async function loadModel() {
+  model = await tf.loadGraphModel('model/model.json');
+}
+loadModel();
+
 const existingMap = document.getElementById('map');
 if (existingMap._leaflet_id) {
   existingMap._leaflet_id = null;
