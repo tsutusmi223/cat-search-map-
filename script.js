@@ -155,13 +155,18 @@ fileInput.addEventListener('change', function () {
 
     const img = new Image();
     img.src = imageData;
-    img.onload = async () => {
-      const tensor = tf.browser.fromPixels(img)
-        .resizeNearestNeighbor([224, 224])
-        .toFloat()
-        .expandDims();
+  img.onload = async () => {
+  if (!model) {
+    alert("モデルがまだ読み込まれていません。少し待ってからもう一度お試しください。");
+    return;
+  }
 
-      const prediction = await model.predict(tensor).data();
+  const tensor = tf.browser.fromPixels(img)
+    .resizeNearestNeighbor([224, 224])
+    .toFloat()
+    .expandDims();
+
+  const prediction = await model.predict(tensor).data();
       const labelIndex = prediction.indexOf(Math.max(...prediction));
       const labels = ["黒猫", "三毛猫", "白猫"];
       const label = labels[labelIndex];
