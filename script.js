@@ -1,252 +1,73 @@
-// 地図の初期化（保険：すでに初期化されていたらリセット）
 let model;
+let map;
+
+// モデルを読み込む関数
 async function loadModel() {
-  model = await tf.loadGraphModel('model/model.json');
-}
-loadModel();
-
-const existingMap = document.getElementById('map');
-if (existingMap._leaflet_id) {
-  existingMap._leaflet_id = null;
-}
-const myMap = L.map('map').setView([38.725213, 139.827071], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
-}).setZIndex(0).addTo(myMap);
-
-// UI要素の取得
-const selectImageBtn = document.getElementById('selectImageBtn');
-const fileInput = document.getElementById('fileInput');
-
-// 一時保存用
-let tempLatLng = null;
-const markerList = [];
-const STORAGE_KEY = 'savedMarkers';
-
-// 地図クリックで画像選択ボタン表示
-myMap.on('click', function (e) {
-  tempLatLng = e.latlng;
-  selectImageBtn.style.display = 'block';
-});
-
-// CSV読み込みとマーカー追加
-fetch('result.csv')
-  .then(response => response.text())
-  .then(data => {
-    const labelMap = {
-      kuro: "黒猫", mike: "三毛猫", tora: "トラ猫",
-      buti: "ブチ猫", siro: "白猫", sabi: "サビ猫"
-    };
-    const rows = Papa.parse(data, { header: true }).data;
-    rows.forEach(row => {
-      const confidence = parseFloat(row.confidence);
-      const label = row.label.trim().toLowerCase();
-      const validLabels = Object.keys(labelMap);
-      if (confidence > 0.5 && validLabels.includes(label)) {
-        const lat = parseFloat(row.lat);
-        const lng = parseFloat(row.lng);
-        const imgPath = `images/${row.filename.trim()}`;
-        const labelName = labelMap[label] || label;
-        const popupContent = `
-          <div>
-            <strong>この猫は「${labelName}」です</strong><br>
-            <img src="${imgPath}" width="150"><br>
-            信頼度：${(confidence * 100).toFixed(1)}%
-          </div>
-        `;
-        L.marker([lat, lng]).addTo(myMap).bindPopup(popupContent);
-      }
-    });
-  });
-
-// 保存データの読み書き
-function createPopupContent(data, index) {
-  const { image, lat, lng, datetime } = data;
-  return `
-    <b>日時:</b> ${datetime || '未設定'}<br>
-    <img src="${image}" class="popup-img"><br>
-    <small>緯度: ${lat}<br>経度: ${lng}</small><br>
-    <button class="delete-btn" onclick="deleteMarkerAt(${index})">🗑️ 削除</button>
-  `;
-}
-
-function addMarker(data, index) {
-  const { lat, lng } = data;
-  const marker = L.marker([lat, lng]).addTo(myMap);
-  marker.bindPopup(createPopupContent(data, index));
-  marker.data = data;
-  markerList[index] = marker;
-}
-
-function saveMarkersToStorage(markers) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(markers));
-}
-
-function addMarkerToStorage(data) {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  const markers = saved ? JSON.parse(saved) : [];
-  markers.push(data);
-  saveMarkersToStorage(markers);
-}
-
-function loadMarkersFromStorage() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return;
   try {
-    const markers = JSON.parse(saved);
-    markers.forEach((data, index) => {
-      if (data.image && data.image.startsWith("data:image")) {
-        addMarker(data, index);
-      }
-    });
-  } catch (e) {
-    console.error("保存データの読み込みに失敗しました:", e);
+    model = await tf.loadGraphModel('model/model.json');
+    console.log("✅ モデル読み込み成功！");
+  } catch (error) {
+    console.error("❌ モデル読み込み失敗:", error);
   }
 }
 
-function deleteMarker(marker, index) {
-  const data = marker.data;
-  if (!data || !data.id) {
-    console.warn("削除対象のデータが見つかりませんでした");
-    return;
-  }
+// マップを初期化する関数
+function initMap() {
+  map = L.map('map').setView([38.7, 139.8], 13); // 鶴岡市周辺
 
-  myMap.removeLayer(marker);
-  markerList.splice(index, 1);
-
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  const savedIndex = saved.findIndex(item => item.id === data.id);
-  if (savedIndex !== -1) {
-    saved.splice(savedIndex, 1);
-    saveMarkersToStorage(saved);
-  }
-
-  db.collection("posts").doc(data.id).delete().then(() => {
-    console.log("Firestoreからも削除しました: ", data.id);
-    loadMarkersFromFirestore();
-  }).catch((error) => {
-    console.error("Firestore削除エラー:", error.message);
-  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
 }
 
-window.deleteMarkerAt = function (index) {
-  const marker = markerList[index];
-  if (!marker) return;
-  if (confirm("このピンを削除しますか？")) {
-    deleteMarker(marker, index);
-  }
-};
-
-// Firestoreから読み込み
-function loadMarkersFromFirestore() {
-  db.collection("posts").orderBy("timestamp", "desc").get().then((querySnapshot) => {
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const id = doc.id;
-      const markerData = {
-        lat: data.lat,
-        lng: data.lng,
-        datetime: data.datetime,
-        image: data.image,
-        id: id,
-        fromFirestore: true
-      };
-      const index = markerList.length;
-      addMarker(markerData, index);
-    });
-    console.log("Firestoreから投稿を読み込みました！");
-  }).catch((error) => {
-    console.error("Firestore読み込みエラー:", error.message);
-  });
-}
-
-// ファイル選択処理
-selectImageBtn.onclick = () => {
-  fileInput.click();
-};
-
-fileInput.addEventListener('change', function () {
-  const file = this.files[0];
-  if (!file || !tempLatLng) return;
-  if (!file.type.startsWith("image/")) {
-    alert("画像ファイルを選んでください。");
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = function (event) {
-  const imageData = event.target.result;
-  if (!imageData) {
-    alert("画像の読み込みに失敗しました。");
-    return;
-  }
-
-  const datetime = getCurrentDateTime();
-  const lat = parseFloat(tempLatLng.lat.toFixed(6));
-  const lng = parseFloat(tempLatLng.lng.toFixed(6));
-  const id = Date.now().toString();
-
-  // 先に newData を作っておく！
-  const newData = {
-    lat,
-    lng,
-    image: imageData,
-    datetime,
-    id
-  };
-
+// 画像を読み込んで予測し、マップにマーカーを追加する関数
+function loadImageAndPredict(imageUrl, lat = 38.7, lng = 139.8) {
   const img = new Image();
-  img.src = imageData;
+  img.crossOrigin = 'anonymous';
+
   img.onload = async () => {
-    const tensor = tf.browser.fromPixels(img)
-      .resizeNearestNeighbor([224, 224])
-      .toFloat()
-      .expandDims();
+    if (!model) {
+      console.error("❌ モデルがまだ読み込まれていません！");
+      return;
+    }
 
-    const prediction = await model.predict(tensor).data();
-    const labelIndex = prediction.indexOf(Math.max(...prediction));
-    const labels = ["黒猫", "三毛猫", "白猫"];
-    const label = labels[labelIndex];
-    const confidence = prediction[labelIndex];
+    try {
+      const tensor = tf.browser.fromPixels(img)
+        .resizeNearestNeighbor([224, 224])
+        .toFloat()
+        .expandDims();
 
-    // ここで分類結果を newData に追加！
-    newData.label = label;
-    newData.confidence = confidence;
+      const prediction = await model.predict(tensor).data();
+      console.log("🔮 予測結果:", prediction);
 
-    const index = markerList.length;
-    addMarkerToStorage(newData);
-    addMarker(newData, index);
-    db.collection("posts").doc(id).set({
-      ...newData,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+      const maxIndex = prediction.indexOf(Math.max(...prediction));
+      const label = `クラス ${maxIndex}`;
 
-    fileInput.value = '';
-    tempLatLng = null;
+      // マップにマーカーを追加
+      L.marker([lat, lng])
+        .addTo(map)
+        .bindPopup(`<b>${label}</b><br><img src="${imageUrl}" width="100">`);
+
+    } catch (error) {
+      console.error("❌ 予測中にエラー:", error);
+    }
   };
-};
-  reader.readAsDataURL(file);
-});
 
-function getCurrentDateTime() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+  img.onerror = () => {
+    console.error("❌ 画像の読み込みに失敗:", imageUrl);
+  };
+
+  img.src = imageUrl;
 }
 
-// 初期読み込み
-loadMarkersFromStorage();
-loadMarkersFromFirestore();
+// ページ読み込み時に初期化
+window.addEventListener('load', async () => {
+  initMap();
+  await loadModel();
 
-window.closeIntro = function () {
-  document.getElementById("introModal").style.display = "none";
-  setTimeout(() => {
-    document.getElementById("map").style.display = "block";
-    myMap.invalidateSize();
-  }, 100);
-};
+  // テスト用画像URL（GitHub Pagesにアップした画像など）
+  const testImageUrl = 'images/sample.jpg'; // ← 実際の画像URLに変更！
 
+  // 画像を読み込んで予測＆マップに表示
+  loadImageAndPredict(testImageUrl, 38.7, 139.8);
+});
