@@ -1,11 +1,4 @@
-let model;
 let map;
-
-// モデルの読み込み（必要に応じて）
-async function loadModel() {
-  model = await tf.loadGraphModel('model/model.json');
-}
-loadModel();
 
 // UI要素の取得
 const selectImageBtn = document.getElementById('selectImageBtn');
@@ -118,7 +111,7 @@ function loadMarkersFromFirestore() {
   });
 }
 
-// ファイル選択処理
+// ファイル選択処理（モデルなし）
 selectImageBtn.onclick = () => {
   fileInput.click();
 };
@@ -152,39 +145,16 @@ fileInput.addEventListener('change', function () {
       id
     };
 
-    const img = new Image();
-    img.src = imageData;
-  img.onload = async () => {
-  if (!model) {
-    alert("モデルがまだ読み込まれていません。少し待ってからもう一度お試しください。");
-    return;
-  }
+    const index = markerList.length;
+    addMarkerToStorage(newData);
+    addMarker(newData, index);
+    db.collection("posts").doc(id).set({
+      ...newData,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
 
-  const tensor = tf.browser.fromPixels(img)
-    .resizeNearestNeighbor([224, 224])
-    .toFloat()
-    .expandDims();
-
-  const prediction = await model.predict(tensor).data();
-      const labelIndex = prediction.indexOf(Math.max(...prediction));
-      const labels = ["黒猫", "三毛猫", "白猫"];
-      const label = labels[labelIndex];
-      const confidence = prediction[labelIndex];
-
-      newData.label = label;
-      newData.confidence = confidence;
-
-      const index = markerList.length;
-      addMarkerToStorage(newData);
-      addMarker(newData, index);
-      db.collection("posts").doc(id).set({
-        ...newData,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      fileInput.value = '';
-      tempLatLng = null;
-    };
+    fileInput.value = '';
+    tempLatLng = null;
   };
   reader.readAsDataURL(file);
 });
@@ -205,7 +175,7 @@ window.closeIntro = function () {
   setTimeout(() => {
     document.getElementById("map").style.display = "block";
 
-    // ✅ マップ初期化はここで！
+    // マップ初期化
     map = L.map('map').setView([38.725213, 139.827071], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
