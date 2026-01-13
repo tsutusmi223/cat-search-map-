@@ -19,7 +19,6 @@ const STORAGE_KEY = 'savedMarkers';
 // 保存データの読み書き
 function createPopupContent(data, index) {
   const { image, lat, lng, datetime } = data;
-  console.log("画像データ:", image); // デバッグ用
 
   return `
     <b>日時:</b> ${datetime || '未設定'}<br>
