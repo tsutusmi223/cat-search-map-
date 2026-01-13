@@ -1,17 +1,11 @@
 let model;
 let map;
 
-// モデル読み込み（使っていない場合はコメントアウトしてもOK）
+// モデルの読み込み（必要に応じて）
 async function loadModel() {
   model = await tf.loadGraphModel('model/model.json');
 }
 loadModel();
-
-// 地図の初期化（保険：すでに初期化されていたらリセット）
-const existingMap = document.getElementById('map');
-if (existingMap._leaflet_id) {
-  existingMap._leaflet_id = null;
-}
 
 // UI要素の取得
 const selectImageBtn = document.getElementById('selectImageBtn');
@@ -21,42 +15,6 @@ const fileInput = document.getElementById('fileInput');
 let tempLatLng = null;
 const markerList = [];
 const STORAGE_KEY = 'savedMarkers';
-
-// 地図クリックで画像選択ボタン表示
-map.on('click', function (e) {
-  tempLatLng = e.latlng;
-  selectImageBtn.style.display = 'block';
-});
-
-// CSV読み込みとマーカー追加
-fetch('result.csv')
-  .then(response => response.text())
-  .then(data => {
-    const labelMap = {
-      kuro: "黒猫", mike: "三毛猫", tora: "トラ猫",
-      buti: "ブチ猫", siro: "白猫", sabi: "サビ猫"
-    };
-    const rows = Papa.parse(data, { header: true }).data;
-    rows.forEach(row => {
-      const confidence = parseFloat(row.confidence);
-      const label = row.label.trim().toLowerCase();
-      const validLabels = Object.keys(labelMap);
-      if (confidence > 0.5 && validLabels.includes(label)) {
-        const lat = parseFloat(row.lat);
-        const lng = parseFloat(row.lng);
-        const imgPath = `images/${row.filename.trim()}`;
-        const labelName = labelMap[label] || label;
-        const popupContent = `
-          <div>
-            <strong>この猫は「${labelName}」です</strong><br>
-            <img src="${imgPath}" width="150"><br>
-            信頼度：${(confidence * 100).toFixed(1)}%
-          </div>
-        `;
-        L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
-      }
-    });
-  });
 
 // 保存データの読み書き
 function createPopupContent(data, index) {
@@ -157,4 +115,108 @@ function loadMarkersFromFirestore() {
     });
     console.log("Firestoreから投稿を読み込みました！");
   }).catch((error) => {
-    console.error("Firestore読み込みエラー:", error.message
+    console.error("Firestore読み込みエラー:", error.message);
+  });
+}
+
+// ファイル選択処理
+selectImageBtn.onclick = () => {
+  fileInput.click();
+};
+
+fileInput.addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file || !tempLatLng) return;
+  if (!file.type.startsWith("image/")) {
+    alert("画像ファイルを選んでください。");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (event) {
+    const imageData = event.target.result;
+    if (!imageData) {
+      alert("画像の読み込みに失敗しました。");
+      return;
+    }
+
+    const datetime = getCurrentDateTime();
+    const lat = parseFloat(tempLatLng.lat.toFixed(6));
+    const lng = parseFloat(tempLatLng.lng.toFixed(6));
+    const id = Date.now().toString();
+
+    const newData = {
+      lat,
+      lng,
+      image: imageData,
+      datetime,
+      id
+    };
+
+    const img = new Image();
+    img.src = imageData;
+    img.onload = async () => {
+      const tensor = tf.browser.fromPixels(img)
+        .resizeNearestNeighbor([224, 224])
+        .toFloat()
+        .expandDims();
+
+      const prediction = await model.predict(tensor).data();
+      const labelIndex = prediction.indexOf(Math.max(...prediction));
+      const labels = ["黒猫", "三毛猫", "白猫"];
+      const label = labels[labelIndex];
+      const confidence = prediction[labelIndex];
+
+      newData.label = label;
+      newData.confidence = confidence;
+
+      const index = markerList.length;
+      addMarkerToStorage(newData);
+      addMarker(newData, index);
+      db.collection("posts").doc(id).set({
+        ...newData,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      fileInput.value = '';
+      tempLatLng = null;
+    };
+  };
+  reader.readAsDataURL(file);
+});
+
+function getCurrentDateTime() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
+// OKボタンでモーダルを閉じてマップを初期化
+window.closeIntro = function () {
+  document.getElementById("introModal").style.display = "none";
+  setTimeout(() => {
+    document.getElementById("map").style.display = "block";
+
+    // ✅ マップ初期化はここで！
+    map = L.map('map').setView([38.725213, 139.827071], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).setZIndex(0).addTo(map);
+
+    map.invalidateSize();
+
+    // 地図クリックイベント
+    map.on('click', function (e) {
+      tempLatLng = e.latlng;
+      selectImageBtn.style.display = 'block';
+    });
+
+    // マーカー読み込み
+    loadMarkersFromStorage();
+    loadMarkersFromFirestore();
+  }, 100);
+};
