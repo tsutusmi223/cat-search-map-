@@ -12,10 +12,6 @@ const existingMap = document.getElementById('map');
 if (existingMap._leaflet_id) {
   existingMap._leaflet_id = null;
 }
-map = L.map('map').setView([38.725213, 139.827071], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
-}).setZIndex(0).addTo(map);
 
 // UI要素の取得
 const selectImageBtn = document.getElementById('selectImageBtn');
