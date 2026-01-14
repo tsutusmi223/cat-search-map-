@@ -133,49 +133,5 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="script.js" defer></script>
-<script>
-  function closeIntro() {
-    document.getElementById("introModal").style.display = "none";
-    document.getElementById("map").style.display = "block";
-
-    map = L.map('map').setView([38.725213, 139.827071], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).setZIndex(0).addTo(map);
-
-    map.invalidateSize();
-
-    map.on('click', function (e) {
-      tempLatLng = e.latlng;
-      selectImageBtn.style.display = 'block';
-    });
-
-    loadMarkersFromStorage();
-    loadMarkersFromFirestore();
-    loadMarkersFromCSV();
-  }
-</script>
-
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
