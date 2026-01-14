@@ -56,10 +56,6 @@ function loadMarkersFromStorage() {
   }
 }
 
-// Firestoreから読み込み
-function loadMarkersFromFirestore() {
-  ...
-}
 
 // ✅ この下に追加！
 function loadMarkersFromCSV() {
