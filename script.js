@@ -1,3 +1,4 @@
+console.log("✅ script.js 読み込まれました！");
 let map;
 
 // UI要素の取得
