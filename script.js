@@ -55,6 +55,44 @@ function loadMarkersFromStorage() {
   }
 }
 
+// Firestoreから読み込み
+function loadMarkersFromFirestore() {
+  ...
+}
+
+// ✅ この下に追加！
+function loadMarkersFromCSV() {
+  fetch('result.csv')
+    .then(response => response.text())
+    .then(data => {
+      const labelMap = {
+        kuro: "黒猫", mike: "三毛猫", tora: "トラ猫",
+        buti: "ブチ猫", siro: "白猫", sabi: "サビ猫"
+      };
+      const rows = Papa.parse(data, { header: true }).data;
+      rows.forEach(row => {
+        const confidence = parseFloat(row.confidence);
+        const label = row.label.trim().toLowerCase();
+        const validLabels = Object.keys(labelMap);
+        if (confidence > 0.5 && validLabels.includes(label)) {
+          const lat = parseFloat(row.lat);
+          const lng = parseFloat(row.lng);
+          const labelName = labelMap[label] || label;
+          const popupContent = `
+            <div>
+              <strong>この猫は「${labelName}」です</strong><br>
+              信頼度：${(confidence * 100).toFixed(1)}%
+            </div>
+          `;
+          L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
+        }
+      });
+    })
+    .catch(error => {
+      console.error("CSVの読み込みに失敗しました:", error);
+    });
+}
+
 function deleteMarker(marker, index) {
   const data = marker.data;
   if (!data || !data.id) {
@@ -192,5 +230,6 @@ window.closeIntro = function () {
     // マーカー読み込み
     loadMarkersFromStorage();
     loadMarkersFromFirestore();
+    loadMarkersFromCSV();
   }, 100);
 };
