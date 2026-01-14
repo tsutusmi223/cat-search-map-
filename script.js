@@ -74,7 +74,7 @@ function loadMarkersFromCSV() {
         const confidence = parseFloat(row.confidence);
         const label = row.label.trim().toLowerCase();
         const validLabels = Object.keys(labelMap);
-        if (confidence > 0.5 && validLabels.includes(label)) {
+        if (confidence > 0.4 && validLabels.includes(label)) {
           const lat = parseFloat(row.lat);
           const lng = parseFloat(row.lng);
           const labelName = labelMap[label] || label;
